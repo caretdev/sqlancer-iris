@@ -3,6 +3,9 @@ package sqlancer.iris;
 import sqlancer.common.ast.newast.NewToStringVisitor;
 import sqlancer.iris.ast.IRISSelect;
 import sqlancer.iris.ast.IRISSelect.IRISFromTable;
+import sqlancer.iris.ast.IRISCase;
+import sqlancer.iris.ast.IRISColumnReference;
+import sqlancer.iris.ast.IRISColumnValue;
 import sqlancer.iris.ast.IRISConstant;
 import sqlancer.iris.ast.IRISExpression;
 
@@ -16,6 +19,12 @@ public final class IRISToStringVisitor extends NewToStringVisitor<IRISExpression
       visit((IRISSelect) expr);
     } else if (expr instanceof IRISFromTable) {
       visit((IRISFromTable) expr);
+    } else if (expr instanceof IRISCase) {
+      visit((IRISCase) expr);
+    } else if (expr instanceof IRISColumnValue) {
+      visit((IRISColumnValue) expr);
+    } else if (expr instanceof IRISColumnReference) {
+      visit((IRISColumnReference) expr);
     } else {
       throw new AssertionError(expr.getClass());
     }
@@ -65,6 +74,33 @@ public final class IRISToStringVisitor extends NewToStringVisitor<IRISExpression
 
   public void visit(IRISFromTable from) {
     sb.append(from.getTable().getName());
+  }
+
+  public void visit(IRISColumnValue c) {
+    sb.append(c.getColumn().getFullQualifiedName());
+  }
+
+  public void visit(IRISCase cas) {
+    sb.append("CASE");
+    if (cas instanceof IRISCase.IRISCaseWithoutBaseExpression) {
+      for (IRISCase.CasePair pair : cas.getPairs()) {
+        sb.append(" WHEN ");
+        visit(pair.getCond());
+        sb.append(" THEN ");
+        visit(pair.getThen());
+      }
+    }
+    sb.append(" ELSE ");
+    visit(cas.getElseExpr());
+    sb.append(" END");
+  }
+
+  public void visit(IRISColumnReference c) {
+    if (c.getColumn().getTable() == null) {
+      sb.append(c.getColumn().getName());
+    } else {
+      sb.append(c.getColumn().getFullQualifiedName());
+    }
   }
 
 }

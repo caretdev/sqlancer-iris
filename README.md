@@ -50,7 +50,7 @@ mvn package -DskipTests
 Or run directly:
 
 ```bash
-java -jar target/sqlancer-*.jar --username _system --password SYS iris --oracle where
+java -jar target/sqlancer-*.jar --username _system --password SYS iris --oracle norec
 ```
 
 ---

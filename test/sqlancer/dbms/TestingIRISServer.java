@@ -11,11 +11,11 @@ public class TestingIRISServer implements AutoCloseable {
   private final IRISContainer dockerContainer;
 
   public TestingIRISServer() {
-    dockerContainer = new IRISContainer("containers.intersystems.com/intersystems/iris-community:latest-em");
+    dockerContainer = new IRISContainer("containers.intersystems.com/intersystems/iris:latest-em");
     dockerContainer.withDatabaseName(DATABASE);
     dockerContainer.withUsername(USER);
     dockerContainer.withPassword(PASSWORD);
-    dockerContainer.withLicenseKey(System.getProperty("user.home") + "/iris-community.key");
+    dockerContainer.withLicenseKey(System.getProperty("user.home") + "/iris.key");
 
     dockerContainer.start();
   }

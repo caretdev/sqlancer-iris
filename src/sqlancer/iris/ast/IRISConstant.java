@@ -63,6 +63,25 @@ public abstract class IRISConstant implements IRISExpression {
     }
   }
 
+  public static class NullConstant extends IRISConstantBase {
+
+    @Override
+    public String getTextRepresentation() {
+      return "NULL";
+    }
+
+    @Override
+    public IRISDataType getExpressionType() {
+      return IRISDataType.NULL;
+    }
+
+    @Override
+    public boolean isNull() {
+      return true;
+    }
+
+  }
+
   public static class BooleanConstant extends IRISConstantBase {
     private final boolean value;
 
@@ -83,6 +102,11 @@ public abstract class IRISConstant implements IRISExpression {
     @Override
     public IRISDataType getExpressionType() {
       return IRISDataType.BIT;
+    }
+
+    @Override
+    public String asString() {
+      return value ? "1" : "0";
     }
   }
 
@@ -165,27 +189,31 @@ public abstract class IRISConstant implements IRISExpression {
     }
   }
 
-  public static IRISExpression createBooleanConstant(boolean value) {
+  public static IRISConstant createBooleanConstant(boolean value) {
     return new BooleanConstant(value);
   }
 
-  public static IRISExpression createStringConstant(String value, int size) {
+  public static IRISConstant createStringConstant(String value, int size) {
     return new StringConstant(value, size);
   }
 
-  public static IRISExpression createStringConstant(String value) {
+  public static IRISConstant createStringConstant(String value) {
     return new StringConstant(value);
   }
 
-  public static IRISExpression createIntConstant(int value) {
+  public static IRISConstant createIntConstant(int value) {
     return new IntConstant(value);
   }
 
-  public static IRISExpression createIntConstant(long value) {
+  public static IRISConstant createIntConstant(long value) {
     return new IntConstant(value);
   }
 
-  public static IRISExpression createDoubleConstant(double value) {
+  public static IRISConstant createDoubleConstant(double value) {
     return new DoubleConstant(value);
+  }
+
+  public static IRISConstant createNullConstant() {
+    return new NullConstant();
   }
 }

@@ -24,6 +24,8 @@ public class IRISSchema extends AbstractSchema<IRISGlobalState, IRISTable> {
 
   public enum IRISDataType {
 
+    NULL,
+
     BIT,
     TINYINT,
     BIGINT,
@@ -72,7 +74,7 @@ public class IRISSchema extends AbstractSchema<IRISGlobalState, IRISTable> {
     // TINYINT,
     ;
 
-    public static IRISDataType getRandomType() {
+    public static IRISDataType getRandomType(IRISDataType... exceptTypes) {
       List<IRISDataType> dataTypes = new ArrayList<>();
 
       dataTypes.add(BIT);
@@ -94,6 +96,11 @@ public class IRISSchema extends AbstractSchema<IRISGlobalState, IRISTable> {
       // dataTypes.add(DATE);
       // dataTypes.add(TIME);
       // dataTypes.add(TIMESTAMP);
+      if (exceptTypes != null) {
+        for (IRISDataType type: exceptTypes) {
+          dataTypes.remove(type);
+        }
+      }
       return Randomly.fromList(dataTypes);
     }
   }
@@ -136,6 +143,12 @@ public class IRISSchema extends AbstractSchema<IRISGlobalState, IRISTable> {
       super(tableName, columns, indexes, isView);
       this.isInsertable = isInsertable;
       this.tableType = tableType;
+    }
+
+    public IRISTable(String tableName, List<IRISColumn> columns, List<IRISIndex> indexes) {
+      super(tableName, columns, indexes, false);
+      this.isInsertable = true;
+      this.tableType = TableType.STANDARD;
     }
 
     public IRISTable.TableType getTableType() {
