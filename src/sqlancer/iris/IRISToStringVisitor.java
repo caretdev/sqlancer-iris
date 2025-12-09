@@ -4,10 +4,12 @@ import sqlancer.common.ast.newast.NewToStringVisitor;
 import sqlancer.iris.ast.IRISSelect;
 import sqlancer.iris.ast.IRISSelect.IRISFromTable;
 import sqlancer.iris.ast.IRISCase;
+import sqlancer.iris.ast.IRISCastOperation;
 import sqlancer.iris.ast.IRISColumnReference;
 import sqlancer.iris.ast.IRISColumnValue;
 import sqlancer.iris.ast.IRISConstant;
 import sqlancer.iris.ast.IRISExpression;
+import sqlancer.iris.ast.IRISPostfixText;
 
 public final class IRISToStringVisitor extends NewToStringVisitor<IRISExpression> {
 
@@ -25,6 +27,10 @@ public final class IRISToStringVisitor extends NewToStringVisitor<IRISExpression
       visit((IRISColumnValue) expr);
     } else if (expr instanceof IRISColumnReference) {
       visit((IRISColumnReference) expr);
+    } else if (expr instanceof IRISPostfixText) {
+      visit((IRISPostfixText) expr);
+    } else if (expr instanceof IRISCastOperation) {
+      visit((IRISCastOperation) expr);
     } else {
       throw new AssertionError(expr.getClass());
     }
@@ -101,6 +107,20 @@ public final class IRISToStringVisitor extends NewToStringVisitor<IRISExpression
     } else {
       sb.append(c.getColumn().getFullQualifiedName());
     }
+  }
+
+  public void visit(IRISPostfixText op) {
+    visit(op.getExpr());
+    sb.append(op.getText());
+  }
+
+  public void visit(IRISCastOperation cast) {
+    sb.append("CAST(");
+    visit(cast.getExpression());
+    sb.append(" AS ");
+    sb.append(cast.getType().name());
+    sb.append(")");
+
   }
 
 }

@@ -8,6 +8,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import sqlancer.Randomly;
+import sqlancer.Randomly.StringGenerationStrategy;
 import sqlancer.common.ast.BinaryOperatorNode.Operator;
 import sqlancer.common.gen.CERTGenerator;
 import sqlancer.common.gen.NoRECGenerator;
@@ -25,6 +26,7 @@ import sqlancer.iris.ast.IRISColumnValue;
 import sqlancer.iris.ast.IRISExpression;
 import sqlancer.iris.ast.IRISInOperation;
 import sqlancer.iris.ast.IRISJoin;
+import sqlancer.iris.ast.IRISPostfixText;
 import sqlancer.iris.ast.IRISSelect;
 import sqlancer.iris.ast.IRISUnaryPostfixOperation;
 import sqlancer.iris.ast.IRISUnaryPrefixOperation;
@@ -84,7 +86,7 @@ public class IRISExpressionGenerator
 
   @Override
   public IRISExpression generateBooleanExpression() {
-    return generateExpression(IRISDataType.BIT, 0);
+    return generateBooleanExpression(0);
   }
 
   public IRISExpression generateBooleanExpression(int depth) {
@@ -113,8 +115,8 @@ public class IRISExpressionGenerator
       IRISDataType type = gen.getMeaningfulType(IRISDataType.BIT);
 
       return new IRISBinaryOperation(
-          gen.generateExpression(type, depth + 1),
-          gen.generateExpression(type, depth + 1),
+          gen.generateSimpleExpression(type),
+          gen.generateSimpleExpression(type),
           op);
     }
   }
@@ -180,9 +182,13 @@ public class IRISExpressionGenerator
 
   @Override
   public String generateUnoptimizedQueryString(IRISSelect select, IRISExpression whereCondition) {
-    IRISColumn c = new IRISColumn("COUNT(*) as cnt", null, null);
-    select.setFetchColumns(List.of(new IRISColumnReference(c)));
+    // IRISCastOperation isTrue = new IRISCastOperation(whereCondition, IRISDataType.INTEGER);
+    IRISExpression isTrue = IRISCaseWithoutBaseExpression.createBoolean(whereCondition);
+    IRISPostfixText asText = new IRISPostfixText(isTrue, " as cnt", null, IRISDataType.INTEGER);
+    select.setFetchColumns(Arrays.asList(asText));
     select.setWhereClause(null);
+    select.setOrderByClauses(List.of());
+
     return "SELECT SUM(cnt) FROM (" + select.asString() + ") as res";
   }
 
@@ -243,7 +249,8 @@ public class IRISExpressionGenerator
     switch (type) {
       case CHAR:
       case VARCHAR:
-        return IRISConstant.createStringConstant(globalState.getRandomly().getString());
+        StringGenerationStrategy strategy = Randomly.StringGenerationStrategy.ALPHANUMERIC;
+        return IRISConstant.createStringConstant(strategy.getString(globalState.getRandomly()));
       case BIGINT:
         return IRISConstant.createIntConstant(Randomly.getNonCachedInteger());
       case INTEGER:
@@ -393,19 +400,22 @@ public class IRISExpressionGenerator
     }
   }
 
+  private IRISExpression generateSimpleExpression(IRISDataType type) {
+    if (Randomly.getBooleanWithRatherLowProbability()) {
+      return generateConstant(type);
+    } else {
+      if (filterColumns(type).isEmpty()) {
+        return generateConstant(type);
+      } else {
+        return createColumnOfType(type);
+      }
+    }
+  }
+
   @Override
   protected IRISExpression generateExpression(IRISDataType type, int depth) {
     if (depth > 0 && Randomly.getBooleanWithRatherLowProbability() || depth > maxDepth) {
-      if (Randomly.getBooleanWithRatherLowProbability()) {
-        return generateConstant(type);
-      } else {
-        if (filterColumns(type).isEmpty()) {
-          return generateConstant(type);
-        } else {
-          return createColumnOfType(type);
-        }
-      }
-      // throw new AssertionError("generateExpression");
+      return generateSimpleExpression(type);
     }
 
     switch (type) {
@@ -455,16 +465,12 @@ public class IRISExpressionGenerator
 
   @Override
   public List<IRISExpression> generateOrderBys() {
-    List<IRISExpression> expressions = new ArrayList<>();
-    int nr = Randomly.smallNumber() + 1;
-    ArrayList<IRISColumn> irisColumns = new ArrayList<>(columns);
-    for (int i = 0; i < nr && !columns.isEmpty(); i++) {
-      IRISColumn randomColumn = Randomly.fromList(irisColumns);
-      IRISColumnReference columnReference = new IRISColumnReference(randomColumn);
-      irisColumns.remove(randomColumn);
-      expressions.add(columnReference);
+    List<IRISExpression> orderBys = new ArrayList<>();
+    for (int i = 0; i < Randomly.smallNumber(); i++) {
+      IRISExpression expr = IRISColumnValue.create(Randomly.fromList(columns), null);
+      orderBys.add(expr);
     }
-    return expressions;
+    return orderBys;
   }
 
 }

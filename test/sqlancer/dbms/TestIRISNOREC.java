@@ -14,6 +14,7 @@ public class TestIRISNOREC {
       assertEquals(0,
           Main.executeMain(new String[] {
               "--random-seed", "0",
+              // "--num-tries", "1",
               "--timeout-seconds", TestConfig.SECONDS,
               "--num-threads", "4",
               "--num-queries", TestConfig.NUM_QUERIES,

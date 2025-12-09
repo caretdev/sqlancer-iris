@@ -1,6 +1,5 @@
 package sqlancer.dbms.gen;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.junit.jupiter.api.Test;
@@ -73,7 +72,7 @@ public class TestIRISExpressionGenerator {
   @Test
   public void generateOptimizedQueryString() {
     IRISSelect select;
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 100; i++) {
       IRISTables tables = getRandomTables(Randomly.smallNumber() + 1);
       gen = gen.setTablesAndColumns(tables);
       select = gen.generateSelect();
@@ -82,6 +81,21 @@ public class TestIRISExpressionGenerator {
       IRISExpression randomWhereCondition = this.gen.generateBooleanExpression();
       boolean shouldUseAggregate = Randomly.getBoolean();
       String optimizedQueryString = this.gen.generateOptimizedQueryString(select, randomWhereCondition, shouldUseAggregate);
+      System.err.println(optimizedQueryString);
+    }
+  }
+
+  @Test
+  public void generateUnoptimizedQueryString() {
+    IRISSelect select;
+    for (int i = 0; i < 10; i++) {
+      IRISTables tables = getRandomTables(Randomly.smallNumber() + 1);
+      gen = gen.setTablesAndColumns(tables);
+      select = gen.generateSelect();
+      select.setFromList(gen.getTableRefs());
+      gen.setTablesAndColumns(tables);
+      IRISExpression randomWhereCondition = this.gen.generateBooleanExpression();
+      String optimizedQueryString = this.gen.generateUnoptimizedQueryString(select, randomWhereCondition);
       System.err.println(optimizedQueryString);
     }
   }
