@@ -31,6 +31,13 @@ public final class IRISCommon {
       case DECIMAL:
       case NUMERIC:
         sb.append(Randomly.fromOptions("NUMERIC", "DECIMAL"));
+        sb.append("(");
+        int precision = ThreadLocalRandom.current().nextInt(1, 38);
+        sb.append(precision);
+        sb.append(", ");
+        int scale = ThreadLocalRandom.current().nextInt(0, precision);
+        sb.append(scale);
+        sb.append(")");
         break;
       case DOUBLE:
       case FLOAT:

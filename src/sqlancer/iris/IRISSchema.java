@@ -25,6 +25,7 @@ public class IRISSchema extends AbstractSchema<IRISGlobalState, IRISTable> {
   public enum IRISDataType {
 
     NULL,
+    BOOLEAN,
 
     BIT,
     TINYINT,

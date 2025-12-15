@@ -2,7 +2,9 @@ package sqlancer.iris;
 
 import sqlancer.common.ast.newast.NewToStringVisitor;
 import sqlancer.iris.ast.IRISSelect;
+import sqlancer.iris.ast.IRISUnaryPrefixOperation;
 import sqlancer.iris.ast.IRISSelect.IRISFromTable;
+import sqlancer.iris.ast.IRISBinaryArithmeticOperation;
 import sqlancer.iris.ast.IRISCase;
 import sqlancer.iris.ast.IRISCastOperation;
 import sqlancer.iris.ast.IRISColumnReference;
@@ -31,8 +33,12 @@ public final class IRISToStringVisitor extends NewToStringVisitor<IRISExpression
       visit((IRISPostfixText) expr);
     } else if (expr instanceof IRISCastOperation) {
       visit((IRISCastOperation) expr);
+    } else if (expr instanceof IRISUnaryPrefixOperation) {
+      visit((IRISUnaryPrefixOperation) expr);
+    } else if (expr instanceof IRISBinaryArithmeticOperation) {
+      visit((IRISBinaryArithmeticOperation) expr);
     } else {
-      throw new AssertionError(expr.getClass());
+      throw new AssertionError("IRISToStringVisitor: " + expr.getClass());
     }
   }
 
@@ -123,4 +129,20 @@ public final class IRISToStringVisitor extends NewToStringVisitor<IRISExpression
 
   }
 
+  public void visit(IRISUnaryPrefixOperation op) {
+    sb.append(op.getTextRepresentation());
+    sb.append(" (");
+    visit(op.getExpression());
+    sb.append(")");
+  }
+
+  public void visit(IRISBinaryArithmeticOperation op) {
+    sb.append("(");
+    visit(op.getLeft());
+    sb.append(" ");
+    sb.append(op.getOp().getTextRepresentation());
+    sb.append(" ");
+    visit(op.getRight());
+    sb.append(")");
+  }
 }

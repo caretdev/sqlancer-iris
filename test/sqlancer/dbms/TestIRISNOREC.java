@@ -13,7 +13,7 @@ public class TestIRISNOREC {
       System.out.println("URL: " + irisServer.getConnectionString());
       assertEquals(0,
           Main.executeMain(new String[] {
-              "--random-seed", "0",
+              // "--random-seed", "0",
               // "--num-tries", "1",
               "--timeout-seconds", TestConfig.SECONDS,
               "--num-threads", "4",

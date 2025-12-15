@@ -21,6 +21,7 @@ import sqlancer.iris.IRISSchema.IRISColumn;
 import sqlancer.iris.ast.IRISBetweenOperation;
 import sqlancer.iris.ast.IRISBinaryComparisonOperation.IRISBinaryComparisonOperator;
 import sqlancer.iris.ast.IRISBinaryOperation;
+import sqlancer.iris.ast.IRISCastOperation;
 import sqlancer.iris.ast.IRISColumnReference;
 import sqlancer.iris.ast.IRISColumnValue;
 import sqlancer.iris.ast.IRISExpression;
@@ -30,6 +31,9 @@ import sqlancer.iris.ast.IRISPostfixText;
 import sqlancer.iris.ast.IRISSelect;
 import sqlancer.iris.ast.IRISUnaryPostfixOperation;
 import sqlancer.iris.ast.IRISUnaryPrefixOperation;
+import sqlancer.iris.ast.IRISUnaryPrefixOperation.PrefixOperator;
+import sqlancer.iris.ast.IRISBinaryArithmeticOperation;
+import sqlancer.iris.ast.IRISBinaryArithmeticOperation.IRISBinaryOperator;
 import sqlancer.iris.ast.IRISCase.IRISCaseWithoutBaseExpression;
 import sqlancer.iris.IRISSchema.IRISTable;
 import sqlancer.iris.IRISGlobalState;
@@ -64,10 +68,7 @@ public class IRISExpressionGenerator
 
   @Override
   public IRISExpression negatePredicate(IRISExpression expr) {
-    // System.out.println("negatePredicate: " + (expr instanceof IRISConstant) + ":
-    // " + expr.asString());
-    // return null;
-    return new IRISUnaryPrefixOperation(IRISUnaryPrefixOperator.NOT, expr);
+    return new IRISUnaryPrefixOperation(expr, PrefixOperator.NOT);
   }
 
   @Override
@@ -182,7 +183,8 @@ public class IRISExpressionGenerator
 
   @Override
   public String generateUnoptimizedQueryString(IRISSelect select, IRISExpression whereCondition) {
-    // IRISCastOperation isTrue = new IRISCastOperation(whereCondition, IRISDataType.INTEGER);
+    // IRISCastOperation isTrue = new IRISCastOperation(whereCondition,
+    // IRISDataType.INTEGER);
     IRISExpression isTrue = IRISCaseWithoutBaseExpression.createBoolean(whereCondition);
     IRISPostfixText asText = new IRISPostfixText(isTrue, " as cnt", null, IRISDataType.INTEGER);
     select.setFetchColumns(Arrays.asList(asText));
@@ -210,7 +212,6 @@ public class IRISExpressionGenerator
 
   @Override
   protected IRISExpression generateColumn(IRISDataType type) {
-    // System.out.println("generateColumn: " + type);
     IRISColumn column = Randomly
         .fromList(columns.stream().filter(c -> c.getType() == type).collect(Collectors.toList()));
     return new IRISColumnReference(column);
@@ -246,10 +247,13 @@ public class IRISExpressionGenerator
 
   @Override
   public IRISExpression generateConstant(IRISDataType type) {
+    StringGenerationStrategy strategy;
     switch (type) {
+      case NULL:
+        return IRISConstant.createNullConstant();
       case CHAR:
       case VARCHAR:
-        StringGenerationStrategy strategy = Randomly.StringGenerationStrategy.ALPHANUMERIC;
+        strategy = Randomly.StringGenerationStrategy.ALPHANUMERIC;
         return IRISConstant.createStringConstant(strategy.getString(globalState.getRandomly()));
       case BIGINT:
         return IRISConstant.createIntConstant(Randomly.getNonCachedInteger());
@@ -267,12 +271,17 @@ public class IRISExpressionGenerator
       case FLOAT:
       case REAL:
         return IRISConstant.createDoubleConstant(globalState.getRandomly().getFiniteDouble());
-      // case DATE:
-      // case TIMESTAMP:
-      // case VARBINARY:
-      // case LONGVARCHAR:
-      // case LONGVARBINARY:
-      // case TIME:
+      case BINARY:
+      case VARBINARY:
+      case LONGVARCHAR:
+      case LONGVARBINARY:
+        strategy = Randomly.StringGenerationStrategy.ALPHANUMERIC;
+        return IRISConstant.createStringConstant(strategy.getString(globalState.getRandomly()));
+      case DATE:
+      case TIMESTAMP:
+      case TIME:
+        return IRISConstant.createNullConstant();
+      // return IRISConstant.createStringConstant("2020-01-01 00:00:00");
       default:
         throw new AssertionError("Unknown type: " + type);
     }
@@ -337,23 +346,6 @@ public class IRISExpressionGenerator
     }
   }
 
-  public enum IRISUnaryPrefixOperator implements Operator {
-    NOT("NOT"),
-    ;
-
-    private String textRepr;
-
-    IRISUnaryPrefixOperator(String textRepr) {
-      this.textRepr = textRepr;
-    }
-
-    @Override
-    public String getTextRepresentation() {
-      return textRepr;
-    }
-
-  }
-
   protected IRISExpression generateExpression() {
     return generateExpression(0);
   }
@@ -412,6 +404,35 @@ public class IRISExpressionGenerator
     }
   }
 
+  private enum IntExpression {
+    UNARY_OPERATION,
+    // FUNCTION,
+    CAST,
+    BINARY_ARITHMETIC_EXPRESSION,
+  }
+
+  protected IRISExpression generateNumericExpression(IRISDataType type, int depth) {
+    IntExpression option;
+    option = Randomly.fromOptions(IntExpression.values());
+    switch (option) {
+      case CAST:
+        return new IRISCastOperation(generateExpression(depth + 1), type);
+      case BINARY_ARITHMETIC_EXPRESSION:
+        return new IRISBinaryArithmeticOperation(
+            generateExpression(IRISDataType.INTEGER, depth + 1),
+            generateExpression(IRISDataType.INTEGER, depth + 1),
+            IRISBinaryOperator.getRandom());
+
+      case UNARY_OPERATION:
+        IRISExpression intExpression = generateExpression(type, depth + 1);
+        return new IRISUnaryPrefixOperation(intExpression,
+            Randomly.getBoolean() ? PrefixOperator.UNARY_PLUS : PrefixOperator.UNARY_MINUS);
+      // case FUNCTION:
+      default:
+        throw new AssertionError();
+    }
+  }
+
   @Override
   protected IRISExpression generateExpression(IRISDataType type, int depth) {
     if (depth > 0 && Randomly.getBooleanWithRatherLowProbability() || depth > maxDepth) {
@@ -423,18 +444,21 @@ public class IRISExpressionGenerator
         return generateBooleanExpression(depth);
       case TINYINT:
       case BIGINT:
-      case CHAR:
-      case NUMERIC:
-      case DECIMAL:
       case INTEGER:
       case SMALLINT:
+        return generateNumericExpression(type, depth);
+      case NUMERIC:
+      case DECIMAL:
       case FLOAT:
       case REAL:
       case DOUBLE:
+        return generateNumericExpression(type, depth);
+      case CHAR:
       case VARCHAR:
         return generateConstant(type);
       default:
-        throw new AssertionError("generateExpression: " + type.name());
+        return generateConstant(type);
+      // throw new AssertionError("generateExpression: " + type.name());
     }
   }
 
@@ -466,6 +490,9 @@ public class IRISExpressionGenerator
   @Override
   public List<IRISExpression> generateOrderBys() {
     List<IRISExpression> orderBys = new ArrayList<>();
+    if (columns.isEmpty()) {
+      throw new IllegalStateException();
+    }
     for (int i = 0; i < Randomly.smallNumber(); i++) {
       IRISExpression expr = IRISColumnValue.create(Randomly.fromList(columns), null);
       orderBys.add(expr);

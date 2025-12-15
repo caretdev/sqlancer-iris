@@ -21,9 +21,9 @@ public abstract class IRISConstant implements IRISExpression {
     return false;
   }
 
-  public String asString() {
-    throw new UnsupportedOperationException(this.toString());
-  }
+  // public String asString() {
+  //   throw new UnsupportedOperationException(this.toString());
+  // }
 
   public boolean isString() {
     return false;
@@ -108,6 +108,17 @@ public abstract class IRISConstant implements IRISExpression {
     public String asString() {
       return value ? "1" : "0";
     }
+
+    @Override
+    public boolean isBoolean() {
+      return value;
+    }
+
+    @Override
+    public long asInt() {
+      return value ? 1 : 0;
+    }
+
   }
 
   public static class IntConstant extends IRISConstantBase {
@@ -131,6 +142,10 @@ public abstract class IRISConstant implements IRISExpression {
       return IRISDataType.INTEGER;
     }
 
+    @Override
+    public long asInt() {
+      return value;
+    }
   }
 
   public static class DoubleConstant extends IRISConstantBase {

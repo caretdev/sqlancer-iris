@@ -18,7 +18,7 @@ public final class IRISRandomQueryGenerator {
   public static IRISSelect createRandomQuery(int nrColumns, IRISGlobalState globalState) {
     List<IRISExpression> columns = new ArrayList<>();
     IRISTables tables = globalState.getSchema().getRandomTableNonEmptyTables();
-    IRISExpressionGenerator gen = new IRISExpressionGenerator(globalState);
+    IRISExpressionGenerator gen = new IRISExpressionGenerator(globalState).setColumns(tables.getColumns());
     for (int i = 0; i < nrColumns; i++) {
       columns.add(gen.generateExpression(IRISDataType.getRandomType()));
     }
